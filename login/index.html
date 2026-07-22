@@ -342,6 +342,15 @@
   const API_URL = 'https://script.google.com/macros/s/AKfycbyXcABRLSdDsQpDYtv6wqoeaQlp51Qw4DSqsaVcJWHZ2gf7BA9NzOPEFPF5ssHPL-6y/exec';
   const STORAGE_KEY = 'kbfc_session_token';
 
+  // Must match CLIENT_PASSWORD_SALT in the Apps Script backend exactly.
+  const PASSWORD_SALT = 'kbfc-club-salt-v1';
+
+  async function hashPassword(password){
+    const enc = new TextEncoder().encode(password + PASSWORD_SALT);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   const els = {
     loginCard: document.getElementById('loginCard'),
     resetCard: document.getElementById('resetCard'),
@@ -470,10 +479,7 @@
     showResetMsg('', '');
 
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'requestReset', email: email })
-      });
+      const res = await fetch(`${API_URL}?action=requestReset&email=${encodeURIComponent(email)}`);
       const data = await res.json();
       if (data.ok){
         resetEmail = email;
@@ -509,10 +515,8 @@
     showResetMsg('', '');
 
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'resetPassword', email: resetEmail, code: code, newPassword: newPassword })
-      });
+      const newPasswordHash = await hashPassword(newPassword);
+      const res = await fetch(`${API_URL}?action=resetPassword&email=${encodeURIComponent(resetEmail)}&code=${encodeURIComponent(code)}&newPasswordHash=${encodeURIComponent(newPasswordHash)}`);
       const data = await res.json();
       if (data.ok){
         els.resetCard.classList.add('hidden');
@@ -551,10 +555,8 @@
     showMsg('', '');
 
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: mode, email: email, password: password })
-      });
+      const passwordHash = await hashPassword(password);
+      const res = await fetch(`${API_URL}?action=${mode}&email=${encodeURIComponent(email)}&passwordHash=${encodeURIComponent(passwordHash)}`);
       const data = await res.json();
       if (data.ok){
         localStorage.setItem(STORAGE_KEY, data.token);

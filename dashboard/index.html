@@ -233,6 +233,21 @@
   const API_URL = 'https://script.google.com/macros/s/AKfycbyXcABRLSdDsQpDYtv6wqoeaQlp51Qw4DSqsaVcJWHZ2gf7BA9NzOPEFPF5ssHPL-6y/exec';
   const STORAGE_KEY = 'kbfc_session_token';
 
+  // JSONP helper — same as account/index.html, avoids CORS entirely.
+  let jsonpCounter = 0;
+  function jsonpRequest(url){
+    return new Promise((resolve, reject) => {
+      const callbackName = 'kbfcJsonp_' + (jsonpCounter++) + '_' + Date.now();
+      const script = document.createElement('script');
+      const cleanup = () => { delete window[callbackName]; script.remove(); };
+      window[callbackName] = (data) => { cleanup(); resolve(data); };
+      script.onerror = () => { cleanup(); reject(new Error('Request failed')); };
+      const sep = url.indexOf('?') === -1 ? '?' : '&';
+      script.src = url + sep + 'callback=' + callbackName;
+      document.body.appendChild(script);
+    });
+  }
+
   const els = {
     loadingState: document.getElementById('loadingState'),
     authRequired: document.getElementById('authRequired'),
@@ -371,8 +386,7 @@
       return;
     }
     try {
-      const res = await fetch(`${API_URL}?action=checkSession&token=${encodeURIComponent(token)}`);
-      const data = await res.json();
+      const data = await jsonpRequest(`${API_URL}?action=checkSession&token=${encodeURIComponent(token)}`);
       if (data.ok){
         renderDashboard(data.email, data.premium, data.orders);
       } else {

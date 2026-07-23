@@ -339,7 +339,7 @@
   document.getElementById('brandHome').addEventListener('click', () => { window.location.href = '../'; });
 
   // ---- CONFIG: replace with your deployed Apps Script Web App URL ----
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyXcABRLSdDsQpDYtv6wqoeaQlp51Qw4DSqsaVcJWHZ2gf7BA9NzOPEFPF5ssHPL-6y/exec';
+  const API_URL = 'https://kbfc-api.aliffhakeem8.workers.dev';
   const STORAGE_KEY = 'kbfc_session_token';
 
   // Must match CLIENT_PASSWORD_SALT in the Apps Script backend exactly.
@@ -349,36 +349,6 @@
     const enc = new TextEncoder().encode(password + PASSWORD_SALT);
     const buf = await crypto.subtle.digest('SHA-256', enc);
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  // JSONP request helper — loads the response via a <script> tag instead of
-  // fetch(), which is never subject to CORS. This is what actually works
-  // reliably with Apps Script Web Apps from a different domain.
-  let jsonpCounter = 0;
-  function jsonpRequest(url){
-    return new Promise((resolve, reject) => {
-      const callbackName = 'kbfcJsonp_' + (jsonpCounter++) + '_' + Date.now();
-      const script = document.createElement('script');
-
-      const cleanup = () => {
-        delete window[callbackName];
-        script.remove();
-      };
-
-      window[callbackName] = (data) => {
-        cleanup();
-        resolve(data);
-      };
-
-      script.onerror = () => {
-        cleanup();
-        reject(new Error('Request failed'));
-      };
-
-      const sep = url.indexOf('?') === -1 ? '?' : '&';
-      script.src = url + sep + 'callback=' + callbackName;
-      document.body.appendChild(script);
-    });
   }
 
   const els = {
@@ -461,7 +431,7 @@
     const token = localStorage.getItem(STORAGE_KEY);
     if (!token) return;
     try {
-      const data = await jsonpRequest(`${API_URL}?action=checkSession&token=${encodeURIComponent(token)}`);
+      const data = await (await fetch(`${API_URL}?action=checkSession&token=${encodeURIComponent(token)}`)).json();
       if (data.ok) window.location.href = '../dashboard/';
       else localStorage.removeItem(STORAGE_KEY);
     } catch (err){}
@@ -508,7 +478,7 @@
     showResetMsg('', '');
 
     try {
-      const data = await jsonpRequest(`${API_URL}?action=requestReset&email=${encodeURIComponent(email)}`);
+      const data = await (await fetch(`${API_URL}?action=requestReset&email=${encodeURIComponent(email)}`)).json();
       if (data.ok){
         resetEmail = email;
         els.resetStepRequest.classList.add('hidden');
@@ -544,7 +514,7 @@
 
     try {
       const newPasswordHash = await hashPassword(newPassword);
-      const data = await jsonpRequest(`${API_URL}?action=resetPassword&email=${encodeURIComponent(resetEmail)}&code=${encodeURIComponent(code)}&newPasswordHash=${encodeURIComponent(newPasswordHash)}`);
+      const data = await (await fetch(`${API_URL}?action=resetPassword&email=${encodeURIComponent(resetEmail)}&code=${encodeURIComponent(code)}&newPasswordHash=${encodeURIComponent(newPasswordHash)}`)).json();
       if (data.ok){
         els.resetCard.classList.add('hidden');
         localStorage.setItem(STORAGE_KEY, data.token);
@@ -583,7 +553,7 @@
 
     try {
       const passwordHash = await hashPassword(password);
-      const data = await jsonpRequest(`${API_URL}?action=${mode}&email=${encodeURIComponent(email)}&passwordHash=${encodeURIComponent(passwordHash)}`);
+      const data = await (await fetch(`${API_URL}?action=${mode}&email=${encodeURIComponent(email)}&passwordHash=${encodeURIComponent(passwordHash)}`)).json();
       if (data.ok){
         localStorage.setItem(STORAGE_KEY, data.token);
         window.location.href = '../dashboard/';

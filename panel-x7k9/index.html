@@ -211,7 +211,7 @@
         <table>
           <thead>
             <tr>
-              <th>Order ID</th><th>Email</th><th>Jersey</th><th>Size</th><th>Total</th><th>Status</th><th>Premium</th>
+              <th>Order ID</th><th>Email</th><th>Items</th><th>Total</th><th>Status</th><th>Premium</th>
             </tr>
           </thead>
           <tbody id="ordersTableBody"></tbody>
@@ -335,7 +335,7 @@
 
   els.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = '../login/';
+    window.location.href = '../account/';
   });
 
   // ---------------- ORDERS ----------------
@@ -358,51 +358,103 @@
     const filtered = allOrders.filter(o => {
       if (filter !== 'all' && o.status !== filter) return false;
       if (!q) return true;
-      return o.email.toLowerCase().includes(q) || o.orderId.toLowerCase().includes(q) || (o.nameOnJersey || '').toLowerCase().includes(q);
+      const itemMatch = o.items.some(it => (it.nameOnJersey || '').toLowerCase().includes(q));
+      return o.email.toLowerCase().includes(q) || o.orderId.toLowerCase().includes(q) || itemMatch;
     });
 
     if (filtered.length === 0){
-      els.ordersTableBody.innerHTML = `<tr><td colspan="7" class="empty">No orders match.</td></tr>`;
+      els.ordersTableBody.innerHTML = `<tr><td colspan="6" class="empty">No orders match.</td></tr>`;
       return;
     }
 
-    els.ordersTableBody.innerHTML = filtered.map(o => `
-      <tr>
-        <td class="mono">${o.orderId}</td>
+    els.ordersTableBody.innerHTML = filtered.map((o, idx) => {
+      const summary = o.items.length === 1
+        ? `#${o.items[0].jerseyNumber || '—'} · ${o.items[0].size || '—'}`
+        : `${o.items.length} items`;
+      const rowNumbersStr = o.rowNumbers.join(',');
+
+      return `
+      <tr class="order-summary-row" data-idx="${idx}" style="cursor:pointer;">
+        <td class="mono">${o.orderId} ${o.items.length > 1 ? `<span class="order-chevron" style="display:inline-block;transition:transform .2s ease;">›</span>` : ''}</td>
         <td>${o.email}</td>
-        <td>#${o.jerseyNumber || '—'}</td>
-        <td>${o.size || '—'}</td>
-        <td class="mono">RM ${o.total || '0'}</td>
+        <td>${summary}</td>
+        <td class="mono">RM ${o.total.toFixed(0)}</td>
         <td>
-          <select class="status-select" data-row="${o.rowNumber}">
+          <select class="status-select" data-rows="${rowNumbersStr}">
             <option value="Paid" ${o.status === 'Paid' ? 'selected' : ''}>Paid</option>
             <option value="Pay Later" ${o.status === 'Pay Later' ? 'selected' : ''}>Pay Later</option>
           </select>
         </td>
         <td>
-          <button class="toggle ${o.premium ? 'on' : ''}" data-row="${o.rowNumber}" data-kind="order-premium"></button>
+          <button class="toggle ${o.premium ? 'on' : ''}" data-rows="${rowNumbersStr}" data-kind="order-premium"></button>
         </td>
       </tr>
-    `).join('');
+      ${o.items.length > 1 ? `
+      <tr class="order-detail-row" data-idx="${idx}" style="display:none;">
+        <td colspan="6" style="padding:0;">
+          <div style="background:var(--surface-2); padding:10px 14px 14px 34px; border-bottom:1px solid var(--line);">
+            <table style="width:100%; border:none;">
+              <thead><tr>
+                <th style="background:none; border:none; padding:6px 8px;">Name on jersey</th>
+                <th style="background:none; border:none; padding:6px 8px;">Number</th>
+                <th style="background:none; border:none; padding:6px 8px;">Size</th>
+                <th style="background:none; border:none; padding:6px 8px;">Type</th>
+                <th style="background:none; border:none; padding:6px 8px;">Set</th>
+                <th style="background:none; border:none; padding:6px 8px;">Price</th>
+              </tr></thead>
+              <tbody>
+                ${o.items.map(it => `
+                  <tr>
+                    <td style="border:none; padding:6px 8px;">${it.nameOnJersey || '—'}</td>
+                    <td style="border:none; padding:6px 8px;" class="mono">#${it.jerseyNumber || '—'}</td>
+                    <td style="border:none; padding:6px 8px;">${it.size || '—'}</td>
+                    <td style="border:none; padding:6px 8px;">${it.adultKid || 'Adult'}</td>
+                    <td style="border:none; padding:6px 8px;">${it.set || '—'}</td>
+                    <td style="border:none; padding:6px 8px;" class="mono">RM ${it.total || '0'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>` : ''}
+      `;
+    }).join('');
 
-    els.ordersTableBody.querySelectorAll('.status-select').forEach(sel => {
-      sel.addEventListener('change', async () => {
-        await updateOrder(sel.dataset.row, { status: sel.value });
-        showToast('Status updated');
+    els.ordersTableBody.querySelectorAll('.order-summary-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('select') || e.target.closest('button')) return;
+        const idx = row.dataset.idx;
+        const detailRow = els.ordersTableBody.querySelector(`.order-detail-row[data-idx="${idx}"]`);
+        if (!detailRow) return;
+        const isOpen = detailRow.style.display !== 'none';
+        detailRow.style.display = isOpen ? 'none' : 'table-row';
+        const chevron = row.querySelector('.order-chevron');
+        if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
       });
     });
+
+    els.ordersTableBody.querySelectorAll('.status-select').forEach(sel => {
+      sel.addEventListener('change', async (e) => {
+        e.stopPropagation();
+        await updateOrder(sel.dataset.rows, { status: sel.value });
+        showToast('Status updated');
+      });
+      sel.addEventListener('click', (e) => e.stopPropagation());
+    });
     els.ordersTableBody.querySelectorAll('[data-kind="order-premium"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         const nowOn = !btn.classList.contains('on');
         btn.classList.toggle('on', nowOn);
-        await updateOrder(btn.dataset.row, { premium: String(nowOn) });
+        await updateOrder(btn.dataset.rows, { premium: String(nowOn) });
         showToast(nowOn ? 'Premium granted' : 'Premium removed');
       });
     });
   }
 
-  async function updateOrder(rowNumber, fields){
-    const params = new URLSearchParams({ action: 'adminUpdateOrder', token, rowNumber, ...fields });
+  async function updateOrder(rowNumbers, fields){
+    const params = new URLSearchParams({ action: 'adminUpdateOrder', token, rowNumbers, ...fields });
     await fetch(`${API_URL}?${params.toString()}`);
   }
 
@@ -418,11 +470,18 @@
   els.orderFilter.addEventListener('change', renderOrdersTable);
   document.getElementById('refreshOrdersBtn').addEventListener('click', loadOrders);
   document.getElementById('exportOrdersBtn').addEventListener('click', () => {
-    downloadCsv('kbfc-orders.csv', allOrders.map(o => ({
-      'Order ID': o.orderId, 'Email': o.email, 'Name': o.name, 'Name on Jersey': o.nameOnJersey,
-      'Jersey Number': o.jerseyNumber, 'Size': o.size, 'Set': o.set, 'Total (RM)': o.total,
-      'Status': o.status, 'Premium': o.premium ? 'Yes' : 'No', 'Has Password': o.hasPassword ? 'Yes' : 'No'
-    })));
+    const flat = [];
+    allOrders.forEach(o => {
+      o.items.forEach(it => {
+        flat.push({
+          'Order ID': o.orderId, 'Email': o.email, 'Buyer Name': o.name,
+          'Name on Jersey': it.nameOnJersey, 'Jersey Number': it.jerseyNumber,
+          'Size': it.size, 'Type': it.adultKid, 'Set': it.set, 'Item Price (RM)': it.total,
+          'Order Status': o.status, 'Premium': o.premium ? 'Yes' : 'No', 'Has Password': o.hasPassword ? 'Yes' : 'No'
+        });
+      });
+    });
+    downloadCsv('kbfc-orders.csv', flat);
   });
 
   function showReminderBanner(text, kind){

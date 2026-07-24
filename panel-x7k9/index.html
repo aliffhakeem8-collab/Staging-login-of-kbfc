@@ -172,6 +172,14 @@
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
     Players
   </button>
+  <button class="nav-item" data-view="production">
+    <svg viewBox="0 0 24 24"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
+    Production
+  </button>
+  <button class="nav-item" data-view="drops">
+    <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    Shop Drops
+  </button>
   <div class="sidebar-footer">
     <button class="icon-btn theme-toggle" id="themeToggle" aria-label="Toggle theme">
       <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4" y1="4" x2="5.8" y2="5.8"/><line x1="18.2" y1="18.2" x2="20" y2="20"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4" y1="20" x2="5.8" y2="18.2"/><line x1="18.2" y1="5.8" x2="20" y2="4"/></svg>
@@ -186,7 +194,7 @@
   <div id="authRequired" style="display:none;">
     <h2>Not authorized</h2>
     <p>This account doesn't have admin access, or you're not logged in.</p>
-    <a href="../login/">Go to login</a>
+    <a href="../account/">Go to login</a>
   </div>
 
   <div id="adminContent">
@@ -211,7 +219,7 @@
         <table>
           <thead>
             <tr>
-              <th>Order ID</th><th>Email</th><th>Items</th><th>Total</th><th>Status</th><th>Premium</th>
+              <th>Order ID</th><th>Email</th><th>Items</th><th>Total</th><th>Status</th><th>Premium</th><th></th>
             </tr>
           </thead>
           <tbody id="ordersTableBody"></tbody>
@@ -230,7 +238,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Email</th><th>Account created</th><th>Premium</th></tr></thead>
+          <thead><tr><th>Email</th><th>Account created</th><th>Premium</th><th></th></tr></thead>
           <tbody id="membersTableBody"></tbody>
         </table>
       </div>
@@ -239,7 +247,7 @@
     <!-- PLAYERS -->
     <section class="view-section" id="view-players">
       <div class="page-title">Players</div>
-      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 16px;">Edit name, position, or photo/GIF links shown on the public Players page.</p>
+      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 16px;">Edit name, position, season stats, or photo/GIF links shown on the public Players page.</p>
       <div class="toolbar">
         <input type="text" id="playerSearch" placeholder="Search by name or number…">
         <button class="ghost" id="exportPlayersBtn">Download CSV</button>
@@ -247,8 +255,66 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Photo</th><th>GIF</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Apps</th><th>Goals</th><th>Assists</th><th>Clean sheets</th><th>Photo</th><th>GIF</th><th></th></tr></thead>
           <tbody id="playersTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PRODUCTION SUMMARY -->
+    <section class="view-section" id="view-production">
+      <div class="page-title">Production Summary</div>
+      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 16px;">Size and type breakdown across all orders — hand this to your jersey supplier.</p>
+      <div class="toolbar">
+        <select id="productionScope">
+          <option value="both">Paid + Pay Later</option>
+          <option value="Paid">Paid only</option>
+          <option value="Pay Later">Pay Later only</option>
+        </select>
+        <button class="ghost" id="exportProductionBtn">Download CSV</button>
+        <button class="ghost" id="refreshProductionBtn">Refresh</button>
+      </div>
+      <div id="productionContent"></div>
+    </section>
+
+    <!-- SHOP DROPS -->
+    <section class="view-section" id="view-drops">
+      <div class="page-title">Premium Shop — Drops</div>
+      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 16px;">Items shown to premium members before public release.</p>
+
+      <div class="card-add-drop" style="background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:2fr 1fr 2fr 1fr auto; gap:10px; align-items:end;">
+          <div>
+            <label style="font-size:10.5px; color:var(--muted); display:block; margin-bottom:4px;">Item name</label>
+            <input type="text" id="newDropName" class="edit-input" placeholder="26/27 Away Kit">
+          </div>
+          <div>
+            <label style="font-size:10.5px; color:var(--muted); display:block; margin-bottom:4px;">Price (RM)</label>
+            <input type="text" id="newDropPrice" class="edit-input" placeholder="90">
+          </div>
+          <div>
+            <label style="font-size:10.5px; color:var(--muted); display:block; margin-bottom:4px;">Image URL</label>
+            <input type="text" id="newDropImage" class="edit-input" placeholder="https://…">
+          </div>
+          <div>
+            <label style="font-size:10.5px; color:var(--muted); display:block; margin-bottom:4px;">Status</label>
+            <select id="newDropStatus" class="edit-input">
+              <option>Early access</option>
+              <option>Coming soon</option>
+              <option>Available</option>
+            </select>
+          </div>
+          <button class="action" id="addDropBtn">Add item</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button class="ghost" id="refreshDropsBtn">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Price</th><th>Image URL</th><th>Status</th><th></th></tr></thead>
+          <tbody id="dropsTableBody"></tbody>
         </table>
       </div>
     </section>
@@ -286,6 +352,9 @@
     memberSearch: document.getElementById('memberSearch'),
     playersTableBody: document.getElementById('playersTableBody'),
     playerSearch: document.getElementById('playerSearch'),
+    productionContent: document.getElementById('productionContent'),
+    productionScope: document.getElementById('productionScope'),
+    dropsTableBody: document.getElementById('dropsTableBody'),
     toast: document.getElementById('toast'),
     logoutBtn: document.getElementById('logoutBtn')
   };
@@ -294,6 +363,7 @@
   let allOrders = [];
   let allMembers = [];
   let allPlayers = [];
+  let allDrops = [];
 
   function showToast(msg){
     els.toast.textContent = msg;
@@ -335,7 +405,7 @@
 
   els.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = '../login/';
+    window.location.href = '../account/';
   });
 
   // ---------------- ORDERS ----------------
@@ -363,7 +433,7 @@
     });
 
     if (filtered.length === 0){
-      els.ordersTableBody.innerHTML = `<tr><td colspan="6" class="empty">No orders match.</td></tr>`;
+      els.ordersTableBody.innerHTML = `<tr><td colspan="7" class="empty">No orders match.</td></tr>`;
       return;
     }
 
@@ -388,10 +458,13 @@
         <td>
           <button class="toggle ${o.premium ? 'on' : ''}" data-rows="${rowNumbersStr}" data-kind="order-premium"></button>
         </td>
+        <td>
+          <button class="save-btn" data-rows="${rowNumbersStr}" data-order-id="${o.orderId}" data-kind="delete-order">Delete</button>
+        </td>
       </tr>
       ${`
       <tr class="order-detail-row" data-idx="${idx}" style="display:none;">
-        <td colspan="6" style="padding:0;">
+        <td colspan="7" style="padding:0;">
           <div style="background:var(--surface-2); padding:10px 14px 14px 34px; border-bottom:1px solid var(--line);">
             <table style="width:100%; border:none;">
               <thead><tr>
@@ -449,6 +522,16 @@
         btn.classList.toggle('on', nowOn);
         await updateOrder(btn.dataset.rows, { premium: String(nowOn) });
         showToast(nowOn ? 'Premium granted' : 'Premium removed');
+      });
+    });
+    els.ordersTableBody.querySelectorAll('[data-kind="delete-order"]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm(`Delete order ${btn.dataset.orderId} entirely? This can't be undone.`)) return;
+        const params = new URLSearchParams({ action: 'adminDeleteOrder', token, rowNumbers: btn.dataset.rows });
+        await fetch(`${API_URL}?${params.toString()}`);
+        showToast('Order deleted');
+        loadOrders();
       });
     });
   }
@@ -528,7 +611,7 @@
     const q = els.memberSearch.value.trim().toLowerCase();
     const filtered = allMembers.filter(m => !q || m.email.toLowerCase().includes(q));
     if (filtered.length === 0){
-      els.membersTableBody.innerHTML = `<tr><td colspan="3" class="empty">No members match.</td></tr>`;
+      els.membersTableBody.innerHTML = `<tr><td colspan="4" class="empty">No members match.</td></tr>`;
       return;
     }
     els.membersTableBody.innerHTML = filtered.map(m => `
@@ -536,6 +619,7 @@
         <td>${m.email}</td>
         <td class="mono">${m.createdAt ? m.createdAt.split('T')[0] : '—'}</td>
         <td><button class="toggle ${m.premium ? 'on' : ''}" data-row="${m.rowNumber}" data-kind="member-premium"></button></td>
+        <td><button class="save-btn" data-row="${m.rowNumber}" data-email="${m.email}" data-kind="delete-member">Delete</button></td>
       </tr>
     `).join('');
 
@@ -546,6 +630,15 @@
         const params = new URLSearchParams({ action: 'adminUpdateMember', token, rowNumber: btn.dataset.row, premium: String(nowOn) });
         await fetch(`${API_URL}?${params.toString()}`);
         showToast(nowOn ? 'Premium granted' : 'Premium removed');
+      });
+    });
+    els.membersTableBody.querySelectorAll('[data-kind="delete-member"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm(`Delete the account for ${btn.dataset.email}? This can't be undone.`)) return;
+        const params = new URLSearchParams({ action: 'adminDeleteMember', token, rowNumber: btn.dataset.row });
+        await fetch(`${API_URL}?${params.toString()}`);
+        showToast('Member deleted');
+        loadMembers();
       });
     });
   }
@@ -570,7 +663,7 @@
     const q = els.playerSearch.value.trim().toLowerCase();
     const filtered = allPlayers.filter(p => !q || p.name.toLowerCase().includes(q) || p.number.includes(q));
     if (filtered.length === 0){
-      els.playersTableBody.innerHTML = `<tr><td colspan="6" class="empty">No players match.</td></tr>`;
+      els.playersTableBody.innerHTML = `<tr><td colspan="10" class="empty">No players match.</td></tr>`;
       return;
     }
     els.playersTableBody.innerHTML = filtered.map(p => `
@@ -584,9 +677,16 @@
             ).join('')}
           </select>
         </td>
+        <td><input class="edit-input" data-field="appearances" type="number" min="0" value="${p.appearances}" style="width:56px;"></td>
+        <td><input class="edit-input" data-field="goals" type="number" min="0" value="${p.goals}" style="width:56px;"></td>
+        <td><input class="edit-input" data-field="assists" type="number" min="0" value="${p.assists}" style="width:56px;"></td>
+        <td><input class="edit-input" data-field="cleanSheets" type="number" min="0" value="${p.cleanSheets}" style="width:56px;"></td>
         <td>${p.photo ? `<img class="img-thumb" src="${p.photo}" onerror="this.style.display='none'">` : '—'}</td>
         <td>${p.gif ? `<img class="img-thumb" src="${p.gif}" onerror="this.style.display='none'">` : '—'}</td>
-        <td><button class="save-btn" data-kind="save-player">Save</button></td>
+        <td style="white-space:nowrap;">
+          <button class="save-btn" data-kind="save-player">Save</button>
+          <button class="save-btn" data-kind="delete-player" style="margin-left:6px;">Delete</button>
+        </td>
       </tr>
     `).join('');
 
@@ -596,12 +696,28 @@
         const rowNumber = tr.dataset.row;
         const name = tr.querySelector('[data-field="name"]').value;
         const position = tr.querySelector('[data-field="position"]').value;
+        const appearances = tr.querySelector('[data-field="appearances"]').value;
+        const goals = tr.querySelector('[data-field="goals"]').value;
+        const assists = tr.querySelector('[data-field="assists"]').value;
+        const cleanSheets = tr.querySelector('[data-field="cleanSheets"]').value;
         btn.textContent = 'Saving…';
-        const params = new URLSearchParams({ action: 'adminUpdatePlayer', token, rowNumber, name, position });
+        const params = new URLSearchParams({ action: 'adminUpdatePlayer', token, rowNumber, name, position, appearances, goals, assists, cleanSheets });
         await fetch(`${API_URL}?${params.toString()}`);
         btn.textContent = 'Saved';
         btn.classList.add('saved');
         setTimeout(() => { btn.textContent = 'Save'; btn.classList.remove('saved'); }, 1500);
+      });
+    });
+
+    els.playersTableBody.querySelectorAll('[data-kind="delete-player"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const tr = btn.closest('tr');
+        const name = tr.querySelector('[data-field="name"]').value || 'this player';
+        if (!confirm(`Delete ${name} from the Players list? This can't be undone.`)) return;
+        const params = new URLSearchParams({ action: 'adminDeletePlayer', token, rowNumber: tr.dataset.row });
+        await fetch(`${API_URL}?${params.toString()}`);
+        showToast('Player deleted');
+        loadPlayers();
       });
     });
   }
@@ -616,8 +732,160 @@
   document.getElementById('refreshPlayersBtn').addEventListener('click', loadPlayers);
   document.getElementById('exportPlayersBtn').addEventListener('click', () => {
     downloadCsv('kbfc-players.csv', allPlayers.map(p => ({
-      'Number': p.number, 'Name': p.name, 'Position': p.position, 'Photo': p.photo, 'GIF': p.gif
+      'Number': p.number, 'Name': p.name, 'Position': p.position,
+      'Appearances': p.appearances, 'Goals': p.goals, 'Assists': p.assists, 'Clean Sheets': p.cleanSheets,
+      'Photo': p.photo, 'GIF': p.gif
     })));
+  });
+
+  // ---------------- PRODUCTION SUMMARY ----------------
+  function renderProductionSummary(breakdown, totalPaid, totalPending){
+    const scope = els.productionScope.value;
+    const buckets = scope === 'both' ? ['Paid', 'Pay Later'] : [scope];
+
+    // Merge selected buckets into one { adultKid: { size: count } } view.
+    const merged = {};
+    buckets.forEach(bucket => {
+      const b = breakdown[bucket] || {};
+      Object.keys(b).forEach(adultKid => {
+        if (!merged[adultKid]) merged[adultKid] = {};
+        Object.keys(b[adultKid]).forEach(size => {
+          merged[adultKid][size] = (merged[adultKid][size] || 0) + b[adultKid][size];
+        });
+      });
+    });
+
+    const groups = Object.keys(merged);
+    if (groups.length === 0){
+      els.productionContent.innerHTML = `<div class="card locked-panel"><p style="color:var(--muted);">No orders yet.</p></div>`;
+      return;
+    }
+
+    const totalShown = scope === 'both' ? totalPaid + totalPending : (scope === 'Paid' ? totalPaid : totalPending);
+
+    els.productionContent.innerHTML = `
+      <div class="stat-row" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-tile"><b>${totalShown}</b><span>Total jerseys (this view)</span></div>
+        <div class="stat-tile"><b>${totalPaid}</b><span>Paid</span></div>
+        <div class="stat-tile"><b>${totalPending}</b><span>Pay later</span></div>
+      </div>
+      ${groups.map(adultKid => {
+        const sizes = merged[adultKid];
+        const groupTotal = Object.values(sizes).reduce((s, n) => s + n, 0);
+        return `
+        <div class="card" style="margin-bottom:14px;">
+          <h3>${adultKid} <span style="color:var(--muted); font-weight:500;">— ${groupTotal} total</span></h3>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
+            ${Object.keys(sizes).sort().map(size => `
+              <div style="background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 16px; text-align:center; min-width:70px;">
+                <div style="font-family:'Oswald',sans-serif; font-size:20px; font-weight:600;">${sizes[size]}</div>
+                <div style="font-size:10.5px; color:var(--muted); text-transform:uppercase;">${size}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  }
+
+  let lastProductionData = null;
+
+  async function loadProduction(){
+    const data = await (await fetch(`${API_URL}?action=adminGetProductionSummary&token=${encodeURIComponent(token)}`)).json();
+    if (!data.ok) { showToast(data.error || 'Failed to load production summary'); return; }
+    lastProductionData = data;
+    renderProductionSummary(data.breakdown, data.totalPaid, data.totalPending);
+  }
+  els.productionScope.addEventListener('change', () => {
+    if (lastProductionData) renderProductionSummary(lastProductionData.breakdown, lastProductionData.totalPaid, lastProductionData.totalPending);
+  });
+  document.getElementById('refreshProductionBtn').addEventListener('click', loadProduction);
+  document.getElementById('exportProductionBtn').addEventListener('click', () => {
+    if (!lastProductionData) { showToast('Nothing to export yet.'); return; }
+    const rows = [];
+    ['Paid', 'Pay Later'].forEach(bucket => {
+      const b = lastProductionData.breakdown[bucket] || {};
+      Object.keys(b).forEach(adultKid => {
+        Object.keys(b[adultKid]).forEach(size => {
+          rows.push({ 'Status': bucket, 'Type': adultKid, 'Size': size, 'Count': b[adultKid][size] });
+        });
+      });
+    });
+    downloadCsv('kbfc-production-summary.csv', rows);
+  });
+
+  // ---------------- SHOP DROPS ----------------
+  function renderDropsTable(){
+    if (allDrops.length === 0){
+      els.dropsTableBody.innerHTML = `<tr><td colspan="5" class="empty">No drops yet — add one above.</td></tr>`;
+      return;
+    }
+    els.dropsTableBody.innerHTML = allDrops.map(d => `
+      <tr data-row="${d.rowNumber}">
+        <td><input class="edit-input" data-field="name" value="${d.name.replace(/"/g,'&quot;')}"></td>
+        <td><input class="edit-input" data-field="price" value="${d.price}" style="width:70px;"></td>
+        <td><input class="edit-input" data-field="imageUrl" value="${d.imageUrl.replace(/"/g,'&quot;')}"></td>
+        <td>
+          <select class="edit-input" data-field="status">
+            ${['Early access','Coming soon','Available'].map(s => `<option ${d.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td style="white-space:nowrap;">
+          <button class="save-btn" data-kind="save-drop">Save</button>
+          <button class="save-btn" data-kind="delete-drop" style="margin-left:6px;">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+
+    els.dropsTableBody.querySelectorAll('[data-kind="save-drop"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const tr = btn.closest('tr');
+        const rowNumber = tr.dataset.row;
+        const name = tr.querySelector('[data-field="name"]').value;
+        const price = tr.querySelector('[data-field="price"]').value;
+        const imageUrl = tr.querySelector('[data-field="imageUrl"]').value;
+        const status = tr.querySelector('[data-field="status"]').value;
+        btn.textContent = 'Saving…';
+        const params = new URLSearchParams({ action: 'adminUpdateDrop', token, rowNumber, name, price, imageUrl, status });
+        await fetch(`${API_URL}?${params.toString()}`);
+        btn.textContent = 'Saved';
+        btn.classList.add('saved');
+        setTimeout(() => { btn.textContent = 'Save'; btn.classList.remove('saved'); }, 1500);
+      });
+    });
+    els.dropsTableBody.querySelectorAll('[data-kind="delete-drop"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const tr = btn.closest('tr');
+        const name = tr.querySelector('[data-field="name"]').value || 'this item';
+        if (!confirm(`Remove "${name}" from the shop?`)) return;
+        const params = new URLSearchParams({ action: 'adminDeleteDrop', token, rowNumber: tr.dataset.row });
+        await fetch(`${API_URL}?${params.toString()}`);
+        showToast('Drop removed');
+        loadDrops();
+      });
+    });
+  }
+
+  async function loadDrops(){
+    const data = await (await fetch(`${API_URL}?action=adminGetDrops&token=${encodeURIComponent(token)}`)).json();
+    if (!data.ok) { showToast(data.error || 'Failed to load drops'); return; }
+    allDrops = data.drops;
+    renderDropsTable();
+  }
+  document.getElementById('refreshDropsBtn').addEventListener('click', loadDrops);
+  document.getElementById('addDropBtn').addEventListener('click', async () => {
+    const name = document.getElementById('newDropName').value.trim();
+    const price = document.getElementById('newDropPrice').value.trim();
+    const imageUrl = document.getElementById('newDropImage').value.trim();
+    const status = document.getElementById('newDropStatus').value;
+    if (!name){ showToast('Item name is required.'); return; }
+    const params = new URLSearchParams({ action: 'adminAddDrop', token, name, price, imageUrl, status });
+    await fetch(`${API_URL}?${params.toString()}`);
+    document.getElementById('newDropName').value = '';
+    document.getElementById('newDropPrice').value = '';
+    document.getElementById('newDropImage').value = '';
+    showToast('Item added');
+    loadDrops();
   });
 
   // ---------------- INIT ----------------
@@ -640,6 +908,8 @@
     renderOrdersTable();
     loadMembers();
     loadPlayers();
+    loadProduction();
+    loadDrops();
   }
 
   init();

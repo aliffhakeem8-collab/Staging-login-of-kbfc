@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KBFC | Admin</title>
-<link rel="icon" type="image/png" href="/images/Favicon.png">
-<link rel="apple-touch-icon" href="/images/Favicon.png">
+<link rel="icon" type="image/png" href="../images/Favicon.png">
+<link rel="apple-touch-icon" href="../images/Favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -264,7 +264,7 @@
   <div id="authRequired" style="display:none;">
     <h2>Not authorized</h2>
     <p>This account doesn't have admin access, or you're not logged in.</p>
-    <a href="/login/">Go to login</a>
+    <a href="../account/">Go to login</a>
   </div>
 
   <div id="adminContent">
@@ -429,9 +429,34 @@
     <!-- SITE MEDIA -->
     <section class="view-section" id="view-media">
       <div class="page-title">Site Media</div>
-      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 20px;">Upload images used across the site. New slots get added here over time.</p>
+      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 20px;">Upload images used across the site. Every upload is logged below and can be deleted.</p>
 
-      <div id="siteMediaSlots"></div>
+      <div class="card" style="margin-bottom:20px;">
+        <h3>Upload new image</h3>
+        <p class="card-sub" style="margin-bottom:16px;">Choose where it lands, then select or drag a file.</p>
+        <label style="font-size:10.5px; color:var(--muted); display:block; margin-bottom:6px;">Upload to</label>
+        <select id="mediaSlotSelect" class="edit-input" style="margin-bottom:14px; max-width:320px;"></select>
+        <label class="media-upload-zone" id="mediaUploadZone">
+          <input type="file" accept="image/*" id="mediaFileInput">
+          <div id="mediaZoneLabel">Click to choose an image, or drag one here</div>
+          <p style="font-size:12px;color:var(--muted);margin-top:6px;">JPG or PNG</p>
+        </label>
+        <div class="preview-row hidden" id="mediaPreviewRow" style="display:none; align-items:center; gap:14px; margin-top:14px;">
+          <img id="mediaPreviewThumb" class="img-thumb" style="width:56px; height:56px;">
+          <span id="mediaPreviewName" style="font-size:12.5px;color:var(--muted);"></span>
+        </div>
+        <div id="mediaUploadMsg"></div>
+        <button class="action" id="mediaUploadBtn" disabled style="margin-top:14px;">Upload</button>
+      </div>
+
+      <h3 style="font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; margin:0 0 4px;">Upload log</h3>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Newest first. The top entry per slot is the one currently live on the site.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th></th><th>Slot</th><th>Uploaded</th><th>Size</th><th>Status</th><th></th></tr></thead>
+          <tbody id="mediaLogTableBody"></tbody>
+        </table>
+      </div>
     </section>
 
   </div>
@@ -482,7 +507,15 @@
     overviewOrdersTotal: document.getElementById('overviewOrdersTotal'),
     productionScope: document.getElementById('productionScope'),
     dropsTableBody: document.getElementById('dropsTableBody'),
-    siteMediaSlots: document.getElementById('siteMediaSlots'),
+    mediaSlotSelect: document.getElementById('mediaSlotSelect'),
+    mediaUploadZone: document.getElementById('mediaUploadZone'),
+    mediaFileInput: document.getElementById('mediaFileInput'),
+    mediaPreviewRow: document.getElementById('mediaPreviewRow'),
+    mediaPreviewThumb: document.getElementById('mediaPreviewThumb'),
+    mediaPreviewName: document.getElementById('mediaPreviewName'),
+    mediaUploadMsg: document.getElementById('mediaUploadMsg'),
+    mediaUploadBtn: document.getElementById('mediaUploadBtn'),
+    mediaLogTableBody: document.getElementById('mediaLogTableBody'),
     toast: document.getElementById('toast'),
     logoutBtn: document.getElementById('logoutBtn')
   };
@@ -536,7 +569,7 @@
 
   els.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = '../login/';
+    window.location.href = '../account/';
   });
 
   // ---------------- ORDERS ----------------
@@ -1068,12 +1101,17 @@
 
   // ---------------- SITE MEDIA ----------------
   // Add a new entry here whenever a new uploadable image spot is needed
-  // elsewhere on the site — nothing else in this file needs to change.
+  // elsewhere on the site — it'll automatically appear in the dropdown.
   const SITE_MEDIA_SLOTS = [
-    { key: 'login-hero', label: 'Login Page Background', description: 'The hero panel behind the login form.' }
+    { key: 'login-hero', label: 'Login Page Background' },
+    { key: 'homepage-hero', label: 'Homepage Hero' },
+    { key: 'players-hero', label: 'Players Page Hero' }
   ];
 
-  let siteAssets = {};
+  els.mediaSlotSelect.innerHTML = SITE_MEDIA_SLOTS.map(s => `<option value="${s.key}">${s.label}</option>`).join('');
+
+  let mediaSelectedFile = null;
+  let mediaLog = [];
 
   function fileToBase64(file){
     return new Promise((resolve, reject) => {
@@ -1084,61 +1122,101 @@
     });
   }
 
-  function renderSiteMediaSlots(){
-    els.siteMediaSlots.innerHTML = SITE_MEDIA_SLOTS.map(slot => {
-      const asset = siteAssets[slot.key];
-      return `
-      <div class="card" style="margin-bottom:16px;">
-        <h3>${slot.label}</h3>
-        <p class="card-sub" style="margin-bottom:16px;">${slot.description}</p>
-        ${asset && asset.url ? `<img class="media-preview" src="${asset.url}" alt="">` : ''}
-        <label class="media-upload-zone" data-slot="${slot.key}">
-          <input type="file" accept="image/*" data-slot-input="${slot.key}">
-          <div>${asset && asset.url ? 'Click or drag to replace' : 'Click to choose an image, or drag one here'}</div>
-          <p style="font-size:12px;color:var(--muted);margin-top:6px;">JPG or PNG, landscape orientation works best</p>
-        </label>
-        <div id="mediaMsg-${slot.key}"></div>
-      </div>`;
-    }).join('');
+  function showMediaMsg(text, type){
+    const color = type === 'success' ? 'var(--success)' : (type === 'error' ? 'var(--accent)' : 'var(--muted)');
+    els.mediaUploadMsg.innerHTML = text ? `<p style="color:${color}; font-size:12.5px; margin-top:10px;">${text}</p>` : '';
+  }
 
-    SITE_MEDIA_SLOTS.forEach(slot => {
-      const zone = els.siteMediaSlots.querySelector(`.media-upload-zone[data-slot="${slot.key}"]`);
-      const input = els.siteMediaSlots.querySelector(`input[data-slot-input="${slot.key}"]`);
-      const msgEl = document.getElementById(`mediaMsg-${slot.key}`);
+  function selectMediaFile(file){
+    if (!file || !file.type.startsWith('image/')) return;
+    mediaSelectedFile = file;
+    els.mediaPreviewThumb.src = URL.createObjectURL(file);
+    els.mediaPreviewName.textContent = file.name;
+    els.mediaPreviewRow.style.display = 'flex';
+    els.mediaUploadBtn.disabled = false;
+    showMediaMsg('', '');
+  }
 
-      const doUpload = async (file) => {
-        if (!file || !file.type.startsWith('image/')) return;
-        msgEl.innerHTML = `<p class="msg" style="color:var(--muted); margin-top:10px;">Uploading…</p>`;
-        try {
-          const base64 = await fileToBase64(file);
-          const res = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'adminUploadSiteImage', token, slot: slot.key, mimeType: file.type, imageBase64: base64 })
-          });
-          const data = await res.json();
-          if (data.ok){
-            msgEl.innerHTML = `<p class="msg" style="color:var(--success); margin-top:10px;">Uploaded successfully.</p>`;
-            loadSiteAssets();
-          } else {
-            msgEl.innerHTML = `<p class="msg" style="color:var(--accent); margin-top:10px;">${data.error || 'Upload failed.'}</p>`;
-          }
-        } catch (err){
-          msgEl.innerHTML = `<p class="msg" style="color:var(--accent); margin-top:10px;">Could not reach the server.</p>`;
-        }
-      };
+  els.mediaFileInput.addEventListener('change', () => {
+    if (els.mediaFileInput.files[0]) selectMediaFile(els.mediaFileInput.files[0]);
+  });
+  ['dragenter', 'dragover'].forEach(evt => els.mediaUploadZone.addEventListener(evt, (e) => { e.preventDefault(); els.mediaUploadZone.classList.add('drag-active'); }));
+  ['dragleave', 'drop'].forEach(evt => els.mediaUploadZone.addEventListener(evt, (e) => { e.preventDefault(); els.mediaUploadZone.classList.remove('drag-active'); }));
+  els.mediaUploadZone.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) selectMediaFile(e.dataTransfer.files[0]); });
 
-      input.addEventListener('change', () => { if (input.files[0]) doUpload(input.files[0]); });
-      ['dragenter', 'dragover'].forEach(evt => zone.addEventListener(evt, (e) => { e.preventDefault(); zone.classList.add('drag-active'); }));
-      ['dragleave', 'drop'].forEach(evt => zone.addEventListener(evt, (e) => { e.preventDefault(); zone.classList.remove('drag-active'); }));
-      zone.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) doUpload(e.dataTransfer.files[0]); });
+  els.mediaUploadBtn.addEventListener('click', async () => {
+    if (!mediaSelectedFile) return;
+    const slot = els.mediaSlotSelect.value;
+    els.mediaUploadBtn.disabled = true;
+    els.mediaUploadBtn.textContent = 'Uploading…';
+    showMediaMsg('', '');
+    try {
+      const base64 = await fileToBase64(mediaSelectedFile);
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'adminUploadSiteImage', token, slot, mimeType: mediaSelectedFile.type, imageBase64: base64 })
+      });
+      const data = await res.json();
+      if (data.ok){
+        showMediaMsg(`Uploaded to "${SITE_MEDIA_SLOTS.find(s => s.key === slot).label}" (${data.sizeKb} KB).`, 'success');
+        mediaSelectedFile = null;
+        els.mediaFileInput.value = '';
+        els.mediaPreviewRow.style.display = 'none';
+        els.mediaUploadBtn.disabled = true;
+        loadSiteAssets();
+      } else {
+        showMediaMsg(data.error || 'Upload failed.', 'error');
+      }
+    } catch (err){
+      showMediaMsg('Could not reach the server.', 'error');
+    }
+    els.mediaUploadBtn.textContent = 'Upload';
+  });
+
+  function slotLabel(key){
+    const found = SITE_MEDIA_SLOTS.find(s => s.key === key);
+    return found ? found.label : key;
+  }
+
+  function renderMediaLog(){
+    if (mediaLog.length === 0){
+      els.mediaLogTableBody.innerHTML = `<tr><td colspan="6" class="empty">No uploads yet.</td></tr>`;
+      return;
+    }
+    // Only the newest entry per slot counts as "Live".
+    const liveRowNumbers = new Set();
+    SITE_MEDIA_SLOTS.forEach(s => {
+      const newest = mediaLog.find(e => e.slot === s.key); // mediaLog is newest-first
+      if (newest) liveRowNumbers.add(newest.rowNumber);
+    });
+
+    els.mediaLogTableBody.innerHTML = mediaLog.map(entry => `
+      <tr>
+        <td><img class="img-thumb" src="${entry.url}" onerror="this.style.display='none'"></td>
+        <td>${slotLabel(entry.slot)}</td>
+        <td class="mono">${entry.uploadedAt ? entry.uploadedAt.split('T')[0] : '—'}</td>
+        <td class="mono">${entry.sizeKb} KB</td>
+        <td>${liveRowNumbers.has(entry.rowNumber) ? '<span style="color:var(--success); font-weight:600; font-size:11.5px;">● Live</span>' : '<span style="color:var(--muted); font-size:11.5px;">Archived</span>'}</td>
+        <td><button class="save-btn" data-row="${entry.rowNumber}" data-kind="delete-media">Delete</button></td>
+      </tr>
+    `).join('');
+
+    els.mediaLogTableBody.querySelectorAll('[data-kind="delete-media"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this upload? If it\\'s the live image for its slot, the site will fall back to whatever was uploaded before it (or the default placeholder).')) return;
+        const params = new URLSearchParams({ action: 'adminDeleteSiteImage', token, rowNumber: btn.dataset.row });
+        await fetch(`${API_URL}?${params.toString()}`);
+        showToast('Upload deleted');
+        loadSiteAssets();
+      });
     });
   }
 
   async function loadSiteAssets(){
     const data = await (await fetch(`${API_URL}?action=adminGetSiteAssets&token=${encodeURIComponent(token)}`)).json();
     if (!data.ok) { showToast(data.error || 'Failed to load site media'); return; }
-    siteAssets = data.assets;
-    renderSiteMediaSlots();
+    mediaLog = data.log;
+    renderMediaLog();
   }
 
   // ---------------- INIT ----------------

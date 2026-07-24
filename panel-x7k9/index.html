@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KBFC | Admin</title>
-<link rel="icon" type="image/png" href="/images/Favicon.png">
-<link rel="apple-touch-icon" href="/images/Favicon.png">
+<link rel="icon" type="image/png" href="../images/Favicon.png">
+<link rel="apple-touch-icon" href="../images/Favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -145,6 +145,15 @@
   @media (max-width:900px){ .stat-row{ grid-template-columns:repeat(2,1fr); } }
   .stat-tile{ background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
   .card{ background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:20px 22px; }
+
+  .media-upload-zone{
+    border:1.5px dashed var(--line); border-radius:12px; padding:24px; text-align:center;
+    cursor:pointer; transition:border-color .2s ease, background .2s ease;
+  }
+  .media-upload-zone:hover{ border-color:var(--accent); }
+  .media-upload-zone.drag-active{ border-color:var(--accent); background:var(--accent-dim); }
+  .media-upload-zone input{ display:none; }
+  .media-preview{ width:100%; max-width:320px; border-radius:10px; border:1px solid var(--line); display:block; margin-bottom:14px; }
   .card h3{ font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; margin-bottom:3px; }
   .card .card-sub{ font-size:12px; color:var(--muted); margin:0; }
   .project-card{ transition:transform .15s ease, border-color .15s ease; }
@@ -237,6 +246,10 @@
     <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
     Shop Drops
   </button>
+  <button class="nav-item" data-view="media">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+    Site Media
+  </button>
   <div class="sidebar-footer">
     <button class="icon-btn theme-toggle" id="themeToggle" aria-label="Toggle theme">
       <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4" y1="4" x2="5.8" y2="5.8"/><line x1="18.2" y1="18.2" x2="20" y2="20"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4" y1="20" x2="5.8" y2="18.2"/><line x1="18.2" y1="5.8" x2="20" y2="4"/></svg>
@@ -251,7 +264,7 @@
   <div id="authRequired" style="display:none;">
     <h2>Not authorized</h2>
     <p>This account doesn't have admin access, or you're not logged in.</p>
-    <a href="/login/">Go to login</a>
+    <a href="../account/">Go to login</a>
   </div>
 
   <div id="adminContent">
@@ -413,6 +426,14 @@
       </div>
     </section>
 
+    <!-- SITE MEDIA -->
+    <section class="view-section" id="view-media">
+      <div class="page-title">Site Media</div>
+      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 20px;">Upload images used across the site. New slots get added here over time.</p>
+
+      <div id="siteMediaSlots"></div>
+    </section>
+
   </div>
 </main>
 
@@ -461,6 +482,7 @@
     overviewOrdersTotal: document.getElementById('overviewOrdersTotal'),
     productionScope: document.getElementById('productionScope'),
     dropsTableBody: document.getElementById('dropsTableBody'),
+    siteMediaSlots: document.getElementById('siteMediaSlots'),
     toast: document.getElementById('toast'),
     logoutBtn: document.getElementById('logoutBtn')
   };
@@ -514,7 +536,7 @@
 
   els.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = '../login/';
+    window.location.href = '../account/';
   });
 
   // ---------------- ORDERS ----------------
@@ -1044,6 +1066,81 @@
     loadDrops();
   });
 
+  // ---------------- SITE MEDIA ----------------
+  // Add a new entry here whenever a new uploadable image spot is needed
+  // elsewhere on the site — nothing else in this file needs to change.
+  const SITE_MEDIA_SLOTS = [
+    { key: 'login-hero', label: 'Login Page Background', description: 'The hero panel behind the login form.' }
+  ];
+
+  let siteAssets = {};
+
+  function fileToBase64(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderSiteMediaSlots(){
+    els.siteMediaSlots.innerHTML = SITE_MEDIA_SLOTS.map(slot => {
+      const asset = siteAssets[slot.key];
+      return `
+      <div class="card" style="margin-bottom:16px;">
+        <h3>${slot.label}</h3>
+        <p class="card-sub" style="margin-bottom:16px;">${slot.description}</p>
+        ${asset && asset.url ? `<img class="media-preview" src="${asset.url}" alt="">` : ''}
+        <label class="media-upload-zone" data-slot="${slot.key}">
+          <input type="file" accept="image/*" data-slot-input="${slot.key}">
+          <div>${asset && asset.url ? 'Click or drag to replace' : 'Click to choose an image, or drag one here'}</div>
+          <p style="font-size:12px;color:var(--muted);margin-top:6px;">JPG or PNG, landscape orientation works best</p>
+        </label>
+        <div id="mediaMsg-${slot.key}"></div>
+      </div>`;
+    }).join('');
+
+    SITE_MEDIA_SLOTS.forEach(slot => {
+      const zone = els.siteMediaSlots.querySelector(`.media-upload-zone[data-slot="${slot.key}"]`);
+      const input = els.siteMediaSlots.querySelector(`input[data-slot-input="${slot.key}"]`);
+      const msgEl = document.getElementById(`mediaMsg-${slot.key}`);
+
+      const doUpload = async (file) => {
+        if (!file || !file.type.startsWith('image/')) return;
+        msgEl.innerHTML = `<p class="msg" style="color:var(--muted); margin-top:10px;">Uploading…</p>`;
+        try {
+          const base64 = await fileToBase64(file);
+          const res = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'adminUploadSiteImage', token, slot: slot.key, mimeType: file.type, imageBase64: base64 })
+          });
+          const data = await res.json();
+          if (data.ok){
+            msgEl.innerHTML = `<p class="msg" style="color:var(--success); margin-top:10px;">Uploaded successfully.</p>`;
+            loadSiteAssets();
+          } else {
+            msgEl.innerHTML = `<p class="msg" style="color:var(--accent); margin-top:10px;">${data.error || 'Upload failed.'}</p>`;
+          }
+        } catch (err){
+          msgEl.innerHTML = `<p class="msg" style="color:var(--accent); margin-top:10px;">Could not reach the server.</p>`;
+        }
+      };
+
+      input.addEventListener('change', () => { if (input.files[0]) doUpload(input.files[0]); });
+      ['dragenter', 'dragover'].forEach(evt => zone.addEventListener(evt, (e) => { e.preventDefault(); zone.classList.add('drag-active'); }));
+      ['dragleave', 'drop'].forEach(evt => zone.addEventListener(evt, (e) => { e.preventDefault(); zone.classList.remove('drag-active'); }));
+      zone.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) doUpload(e.dataTransfer.files[0]); });
+    });
+  }
+
+  async function loadSiteAssets(){
+    const data = await (await fetch(`${API_URL}?action=adminGetSiteAssets&token=${encodeURIComponent(token)}`)).json();
+    if (!data.ok) { showToast(data.error || 'Failed to load site media'); return; }
+    siteAssets = data.assets;
+    renderSiteMediaSlots();
+  }
+
   // ---------------- INIT ----------------
   async function init(){
     token = localStorage.getItem(STORAGE_KEY);
@@ -1066,6 +1163,7 @@
     loadPlayers();
     loadProduction();
     loadDrops();
+    loadSiteAssets();
   }
 
   init();

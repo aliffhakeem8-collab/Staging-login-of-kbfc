@@ -112,6 +112,10 @@
     text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
     padding:12px 14px; background:var(--surface-2); font-weight:600; border-bottom:1px solid var(--line);
   }
+  thead th.sortable{ cursor:pointer; user-select:none; }
+  thead th.sortable:hover{ color:var(--ink); }
+  .sort-arrow{ display:inline-block; font-size:9px; margin-left:2px; opacity:.4; }
+  thead th.sort-active .sort-arrow{ opacity:1; color:var(--accent); }
   tbody td{ padding:12px 14px; font-size:13px; border-bottom:1px solid var(--line); vertical-align:middle; }
   tbody tr:last-child td{ border-bottom:none; }
   tbody tr:hover{ background:var(--surface-2); }
@@ -157,12 +161,12 @@
 
 <div class="sidebar">
   <div class="sidebar-brand">
-    <img src="../images/logo.png" alt="Kelapa Bali FC logo">
+    <img src="../images/Favicon.png" alt="Kelapa Bali FC logo">
     <span>KBFC <span class="tag">ADMIN</span></span>
   </div>
   <button class="nav-item active" data-view="orders">
     <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-    Orders
+    Project
   </button>
   <button class="nav-item" data-view="members">
     <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/><path d="M17 8a3 3 0 0 1 0 6"/></svg>
@@ -171,10 +175,6 @@
   <button class="nav-item" data-view="players">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
     Players
-  </button>
-  <button class="nav-item" data-view="production">
-    <svg viewBox="0 0 24 24"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
-    Production
   </button>
   <button class="nav-item" data-view="drops">
     <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -199,9 +199,25 @@
 
   <div id="adminContent">
 
-    <!-- ORDERS -->
+    <!-- PROJECT (production summary + orders) -->
     <section class="view-section active" id="view-orders">
-      <div class="page-title">Orders</div>
+      <div class="page-title">Project</div>
+
+      <h3 style="font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; margin:0 0 4px;">Production Summary</h3>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Size and type breakdown across all orders — hand this to your jersey supplier.</p>
+      <div class="toolbar">
+        <select id="productionScope">
+          <option value="both">Paid + Pay Later</option>
+          <option value="Paid">Paid only</option>
+          <option value="Pay Later">Pay Later only</option>
+        </select>
+        <button class="ghost" id="exportProductionBtn">Download CSV</button>
+        <button class="ghost" id="refreshProductionBtn">Refresh</button>
+      </div>
+      <div id="productionContent" style="margin-bottom:28px;"></div>
+
+      <h3 style="font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; margin:0 0 4px;">Orders</h3>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Every order, grouped by Order ID. Click a column header to sort.</p>
       <div class="stat-row" id="orderStats"></div>
       <div class="toolbar">
         <input type="text" id="orderSearch" placeholder="Search by email, order ID, or name…">
@@ -219,7 +235,12 @@
         <table>
           <thead>
             <tr>
-              <th>Order ID</th><th>Email</th><th>Items</th><th>Total</th><th>Status</th><th>Premium</th><th></th>
+              <th class="sortable" data-sort="orderId">Order ID <span class="sort-arrow"></span></th>
+              <th class="sortable" data-sort="email">Email <span class="sort-arrow"></span></th>
+              <th class="sortable" data-sort="itemCount">Items <span class="sort-arrow"></span></th>
+              <th class="sortable" data-sort="total">Total <span class="sort-arrow"></span></th>
+              <th class="sortable" data-sort="status">Status <span class="sort-arrow"></span></th>
+              <th>Premium</th><th></th>
             </tr>
           </thead>
           <tbody id="ordersTableBody"></tbody>
@@ -247,7 +268,7 @@
     <!-- PLAYERS -->
     <section class="view-section" id="view-players">
       <div class="page-title">Players</div>
-      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 16px;">Edit name, position, season stats, or photo/GIF links shown on the public Players page.</p>
+      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 16px;">Edit number, name, position, season stats, or photo/GIF links shown on the public Players page.</p>
       <div class="toolbar">
         <input type="text" id="playerSearch" placeholder="Search by name or number…">
         <button class="ghost" id="exportPlayersBtn">Download CSV</button>
@@ -259,22 +280,6 @@
           <tbody id="playersTableBody"></tbody>
         </table>
       </div>
-    </section>
-
-    <!-- PRODUCTION SUMMARY -->
-    <section class="view-section" id="view-production">
-      <div class="page-title">Production Summary</div>
-      <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 16px;">Size and type breakdown across all orders — hand this to your jersey supplier.</p>
-      <div class="toolbar">
-        <select id="productionScope">
-          <option value="both">Paid + Pay Later</option>
-          <option value="Paid">Paid only</option>
-          <option value="Pay Later">Pay Later only</option>
-        </select>
-        <button class="ghost" id="exportProductionBtn">Download CSV</button>
-        <button class="ghost" id="refreshProductionBtn">Refresh</button>
-      </div>
-      <div id="productionContent"></div>
     </section>
 
     <!-- SHOP DROPS -->
@@ -364,6 +369,8 @@
   let allMembers = [];
   let allPlayers = [];
   let allDrops = [];
+  let orderSortKey = null;
+  let orderSortDir = 'asc';
 
   function showToast(msg){
     els.toast.textContent = msg;
@@ -431,6 +438,20 @@
       const itemMatch = o.items.some(it => (it.nameOnJersey || '').toLowerCase().includes(q));
       return o.email.toLowerCase().includes(q) || o.orderId.toLowerCase().includes(q) || itemMatch;
     });
+
+    if (orderSortKey){
+      filtered.sort((a, b) => {
+        let av = a[orderSortKey], bv = b[orderSortKey];
+        if (orderSortKey === 'total' || orderSortKey === 'itemCount'){
+          av = Number(av) || 0; bv = Number(bv) || 0;
+        } else {
+          av = String(av || '').toLowerCase(); bv = String(bv || '').toLowerCase();
+        }
+        if (av < bv) return orderSortDir === 'asc' ? -1 : 1;
+        if (av > bv) return orderSortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
 
     if (filtered.length === 0){
       els.ordersTableBody.innerHTML = `<tr><td colspan="7" class="empty">No orders match.</td></tr>`;
@@ -551,6 +572,25 @@
 
   els.orderSearch.addEventListener('input', renderOrdersTable);
   els.orderFilter.addEventListener('change', renderOrdersTable);
+
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      if (orderSortKey === key){
+        orderSortDir = orderSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        orderSortKey = key;
+        orderSortDir = 'asc';
+      }
+      document.querySelectorAll('th.sortable').forEach(t => {
+        t.classList.remove('sort-active');
+        t.querySelector('.sort-arrow').textContent = '';
+      });
+      th.classList.add('sort-active');
+      th.querySelector('.sort-arrow').textContent = orderSortDir === 'asc' ? '▲' : '▼';
+      renderOrdersTable();
+    });
+  });
   document.getElementById('refreshOrdersBtn').addEventListener('click', loadOrders);
   document.getElementById('exportOrdersBtn').addEventListener('click', () => {
     const flat = [];
@@ -668,7 +708,7 @@
     }
     els.playersTableBody.innerHTML = filtered.map(p => `
       <tr data-row="${p.rowNumber}">
-        <td class="mono">#${p.number}</td>
+        <td><input class="edit-input mono" data-field="number" value="${p.number}" style="width:50px;"></td>
         <td><input class="edit-input" data-field="name" value="${p.name.replace(/"/g,'&quot;')}"></td>
         <td>
           <select class="edit-input" data-field="position">
@@ -694,6 +734,7 @@
       btn.addEventListener('click', async () => {
         const tr = btn.closest('tr');
         const rowNumber = tr.dataset.row;
+        const number = tr.querySelector('[data-field="number"]').value;
         const name = tr.querySelector('[data-field="name"]').value;
         const position = tr.querySelector('[data-field="position"]').value;
         const appearances = tr.querySelector('[data-field="appearances"]').value;
@@ -701,7 +742,7 @@
         const assists = tr.querySelector('[data-field="assists"]').value;
         const cleanSheets = tr.querySelector('[data-field="cleanSheets"]').value;
         btn.textContent = 'Saving…';
-        const params = new URLSearchParams({ action: 'adminUpdatePlayer', token, rowNumber, name, position, appearances, goals, assists, cleanSheets });
+        const params = new URLSearchParams({ action: 'adminUpdatePlayer', token, rowNumber, number, name, position, appearances, goals, assists, cleanSheets });
         await fetch(`${API_URL}?${params.toString()}`);
         btn.textContent = 'Saved';
         btn.classList.add('saved');

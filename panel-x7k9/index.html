@@ -34,6 +34,7 @@
     position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w); z-index:60;
     background:var(--surface); border-right:1px solid var(--line);
     display:flex; flex-direction:column; padding:20px 14px;
+    transition:transform .3s ease;
   }
   .sidebar-brand{ display:flex; align-items:center; gap:10px; padding:4px 8px 22px; }
   .sidebar-brand img{ width:24px; height:24px; }
@@ -64,6 +65,28 @@
     font-size:12px; font-weight:500; padding:9px; border-radius:9px; cursor:pointer;
   }
   .logout-pill:hover{ border-color:var(--accent); color:var(--accent); }
+
+  .mobile-topbar{ display:none; }
+  .sidebar-overlay{ display:none; }
+
+  @media (max-width:900px){
+    .sidebar{ transform:translateX(-100%); box-shadow:0 0 60px rgba(0,0,0,.5); }
+    .sidebar.open{ transform:translateX(0); }
+    .mobile-topbar{
+      display:flex; position:fixed; top:0; left:0; right:0; z-index:50;
+      align-items:center; justify-content:space-between; padding:14px 18px;
+      background:var(--bg); border-bottom:1px solid var(--line);
+    }
+    .mobile-topbar .brand{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; }
+    .mobile-topbar .brand img{ width:20px; height:20px; }
+    .sidebar-overlay{
+      display:block; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:55;
+      opacity:0; pointer-events:none; transition:opacity .25s ease;
+    }
+    .sidebar-overlay.open{ opacity:1; pointer-events:auto; }
+    main{ margin-left:0 !important; padding-top:84px !important; }
+    .card-add-drop > div{ grid-template-columns:1fr !important; }
+  }
 
   main{ margin-left:var(--sidebar-w); padding:32px 36px 60px; max-width:1400px; }
 
@@ -164,7 +187,19 @@
 </head>
 <body>
 
-<div class="sidebar">
+<div class="mobile-topbar">
+  <div class="brand" id="brandHomeMobile">
+    <img src="../images/Favicon.png" alt="Kelapa Bali FC logo">
+    <span>KBFC ADMIN</span>
+  </div>
+  <button class="icon-btn" id="menuBtn" aria-label="Open menu">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <img src="../images/Favicon.png" alt="Kelapa Bali FC logo">
     <span>KBFC <span class="tag">ADMIN</span></span>
@@ -377,6 +412,13 @@
     localStorage.setItem('kit-theme', next);
   });
 
+  const sidebar = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  function openSidebar(){ sidebar.classList.add('open'); sidebarOverlay.classList.add('open'); }
+  function closeSidebar(){ sidebar.classList.remove('open'); sidebarOverlay.classList.remove('open'); }
+  document.getElementById('menuBtn').addEventListener('click', openSidebar);
+  sidebarOverlay.addEventListener('click', closeSidebar);
+
   const API_URL = 'https://kbfc-api.aliffhakeem8.workers.dev';
   const STORAGE_KEY = 'kbfc_session_token';
 
@@ -449,6 +491,7 @@
       btn.classList.add('active');
       document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
       document.getElementById('view-' + btn.dataset.view).classList.add('active');
+      closeSidebar();
     });
   });
 

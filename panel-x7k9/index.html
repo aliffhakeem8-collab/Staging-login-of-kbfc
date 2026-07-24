@@ -203,8 +203,10 @@
           <option value="Pay Later">Pay Later</option>
         </select>
         <button class="action" id="sendRemindersBtn">Send Payment Reminders</button>
+        <button class="ghost" id="exportOrdersBtn">Download CSV</button>
         <button class="ghost" id="refreshOrdersBtn">Refresh</button>
       </div>
+      <div id="reminderResultBanner" style="display:none; margin-bottom:14px; padding:12px 16px; border-radius:10px; font-size:13px; font-weight:600;"></div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -223,6 +225,7 @@
       <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 16px;">Accounts without an order — grant premium manually here.</p>
       <div class="toolbar">
         <input type="text" id="memberSearch" placeholder="Search by email…">
+        <button class="ghost" id="exportMembersBtn">Download CSV</button>
         <button class="ghost" id="refreshMembersBtn">Refresh</button>
       </div>
       <div class="table-wrap">
@@ -239,6 +242,7 @@
       <p style="font-size:12.5px;color:var(--muted);margin:-12px 0 16px;">Edit name, position, or photo/GIF links shown on the public Players page.</p>
       <div class="toolbar">
         <input type="text" id="playerSearch" placeholder="Search by name or number…">
+        <button class="ghost" id="exportPlayersBtn">Download CSV</button>
         <button class="ghost" id="refreshPlayersBtn">Refresh</button>
       </div>
       <div class="table-wrap">
@@ -277,6 +281,7 @@
     orderSearch: document.getElementById('orderSearch'),
     orderFilter: document.getElementById('orderFilter'),
     sendRemindersBtn: document.getElementById('sendRemindersBtn'),
+    reminderResultBanner: document.getElementById('reminderResultBanner'),
     membersTableBody: document.getElementById('membersTableBody'),
     memberSearch: document.getElementById('memberSearch'),
     playersTableBody: document.getElementById('playersTableBody'),
@@ -296,6 +301,29 @@
     setTimeout(() => els.toast.classList.remove('show'), 2200);
   }
 
+  /** Converts an array of flat objects into a CSV file and triggers a browser download. */
+  function downloadCsv(filename, rows){
+    if (!rows || rows.length === 0){ showToast('Nothing to export yet.'); return; }
+    const headers = Object.keys(rows[0]);
+    const escapeCell = (val) => {
+      const s = String(val === undefined || val === null ? '' : val);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const lines = [
+      headers.join(','),
+      ...rows.map(row => headers.map(h => escapeCell(row[h])).join(','))
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -307,7 +335,7 @@
 
   els.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = '../account/';
+    window.location.href = '../login/';
   });
 
   // ---------------- ORDERS ----------------
@@ -389,20 +417,48 @@
   els.orderSearch.addEventListener('input', renderOrdersTable);
   els.orderFilter.addEventListener('change', renderOrdersTable);
   document.getElementById('refreshOrdersBtn').addEventListener('click', loadOrders);
+  document.getElementById('exportOrdersBtn').addEventListener('click', () => {
+    downloadCsv('kbfc-orders.csv', allOrders.map(o => ({
+      'Order ID': o.orderId, 'Email': o.email, 'Name': o.name, 'Name on Jersey': o.nameOnJersey,
+      'Jersey Number': o.jerseyNumber, 'Size': o.size, 'Set': o.set, 'Total (RM)': o.total,
+      'Status': o.status, 'Premium': o.premium ? 'Yes' : 'No', 'Has Password': o.hasPassword ? 'Yes' : 'No'
+    })));
+  });
+
+  function showReminderBanner(text, kind){
+    const el = els.reminderResultBanner;
+    el.textContent = text;
+    el.style.display = 'block';
+    if (kind === 'success'){
+      el.style.background = 'var(--success-bg)'; el.style.color = 'var(--success)';
+    } else if (kind === 'info'){
+      el.style.background = 'var(--gold-bg)'; el.style.color = 'var(--gold)';
+    } else {
+      el.style.background = 'var(--accent-dim)'; el.style.color = 'var(--accent)';
+    }
+  }
 
   els.sendRemindersBtn.addEventListener('click', async () => {
     els.sendRemindersBtn.disabled = true;
     els.sendRemindersBtn.textContent = 'Sending…';
+    els.reminderResultBanner.style.display = 'none';
     try {
-      const data = await (await fetch(`${API_URL}?action=adminSendReminders&token=${encodeURIComponent(token)}`)).json();
+      const res = await fetch(`${API_URL}?action=adminSendReminders&token=${encodeURIComponent(token)}`);
+      const data = await res.json();
       if (data.ok){
-        showToast(`Sent: ${data.sent}${data.failed ? `, Failed: ${data.failed}` : ''}`);
+        if (data.totalPending === 0){
+          showReminderBanner('No orders are currently marked "Pay Later" — nothing to remind.', 'info');
+        } else if (data.failed > 0){
+          showReminderBanner(`Sent ${data.sent} of ${data.totalPending} reminders — ${data.failed} failed. Check Apps Script execution logs for details.`, 'error');
+        } else {
+          showReminderBanner(`Sent ${data.sent} payment reminder${data.sent === 1 ? '' : 's'} successfully.`, 'success');
+        }
         loadOrders();
       } else {
-        showToast(data.error || 'Failed to send reminders');
+        showReminderBanner(data.error || 'Failed to send reminders.', 'error');
       }
     } catch(err){
-      showToast('Could not reach the server');
+      showReminderBanner('Could not reach the server. Check your connection and try again.', 'error');
     }
     els.sendRemindersBtn.disabled = false;
     els.sendRemindersBtn.textContent = 'Send Payment Reminders';
@@ -443,6 +499,12 @@
   }
   els.memberSearch.addEventListener('input', renderMembersTable);
   document.getElementById('refreshMembersBtn').addEventListener('click', loadMembers);
+  document.getElementById('exportMembersBtn').addEventListener('click', () => {
+    downloadCsv('kbfc-members.csv', allMembers.map(m => ({
+      'Email': m.email, 'Has Password': m.hasPassword ? 'Yes' : 'No',
+      'Created At': m.createdAt, 'Premium': m.premium ? 'Yes' : 'No'
+    })));
+  });
 
   // ---------------- PLAYERS ----------------
   function renderPlayersTable(){
@@ -493,6 +555,11 @@
   }
   els.playerSearch.addEventListener('input', renderPlayersTable);
   document.getElementById('refreshPlayersBtn').addEventListener('click', loadPlayers);
+  document.getElementById('exportPlayersBtn').addEventListener('click', () => {
+    downloadCsv('kbfc-players.csv', allPlayers.map(p => ({
+      'Number': p.number, 'Name': p.name, 'Position': p.position, 'Photo': p.photo, 'GIF': p.gif
+    })));
+  });
 
   // ---------------- INIT ----------------
   async function init(){

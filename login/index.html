@@ -297,7 +297,7 @@
             <svg class="eye-closed" viewBox="0 0 24 24" style="display:none;"><path d="M17.94 17.94A10.9 10.9 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
           </button>
         </div>
-        <p class="hint hidden" id="signupHint">Must be at least 6 characters. You'll need to have placed an order with this email already.</p>
+        <p class="hint hidden" id="signupHint">Must be at least 6 characters. If this email has an order with us, you'll get premium access automatically.</p>
         <button class="primary" id="authSubmitBtn">Log in</button>
         <button class="link" id="forgotLink" type="button">Forgot password?</button>
       </div>
@@ -375,6 +375,10 @@
   const API_URL = 'https://kbfc-api.aliffhakeem8.workers.dev';
   const STORAGE_KEY = 'kbfc_session_token';
 
+  function redirectAfterLogin(data){
+    window.location.href = data.isAdmin ? '../panel-x7k9/' : '../dashboard/';
+  }
+
   // Must match CLIENT_PASSWORD_SALT in the Apps Script backend exactly.
   const PASSWORD_SALT = 'kbfc-club-salt-v1';
 
@@ -445,7 +449,7 @@
     els.formTitle.textContent = mode === 'login' ? 'Log in' : 'Create account';
     els.formSub.textContent = mode === 'login'
       ? "Use the email and password you set up, or sign up if you haven't yet."
-      : "You'll need to have placed an order with this email first.";
+      : "If you've ordered with us before, use that email for automatic premium access.";
     els.authSubmitBtn.textContent = mode === 'login' ? 'Log in' : 'Create account';
     els.passwordInput.setAttribute('autocomplete', mode === 'login' ? 'current-password' : 'new-password');
     showMsg('', '');
@@ -482,7 +486,7 @@
     if (!token) return;
     try {
       const data = await (await fetch(`${API_URL}?action=checkSession&token=${encodeURIComponent(token)}`)).json();
-      if (data.ok) window.location.href = '../dashboard/';
+      if (data.ok) redirectAfterLogin(data);
       else localStorage.removeItem(STORAGE_KEY);
     } catch (err){}
   }
@@ -568,7 +572,7 @@
       if (data.ok){
         els.resetCard.classList.add('hidden');
         localStorage.setItem(STORAGE_KEY, data.token);
-        window.location.href = '../dashboard/';
+        redirectAfterLogin(data);
       } else {
         showResetMsg(data.error || 'Something went wrong. Please try again.', 'error');
       }
@@ -606,7 +610,7 @@
       const data = await (await fetch(`${API_URL}?action=${mode}&email=${encodeURIComponent(email)}&passwordHash=${encodeURIComponent(passwordHash)}`)).json();
       if (data.ok){
         localStorage.setItem(STORAGE_KEY, data.token);
-        window.location.href = '../dashboard/';
+        redirectAfterLogin(data);
       } else {
         showMsg(data.error || 'Something went wrong. Please try again.', 'error');
       }
@@ -643,7 +647,7 @@
       const data = await (await fetch(`${API_URL}?action=googleLogin&idToken=${encodeURIComponent(response.credential)}`)).json();
       if (data.ok){
         localStorage.setItem(STORAGE_KEY, data.token);
-        window.location.href = '../dashboard/';
+        redirectAfterLogin(data);
       } else {
         showGoogleMsg(data.error || 'Could not sign in with Google. Please try again.', 'error');
       }
@@ -659,7 +663,7 @@
       callback: handleGoogleCredential
     });
     google.accounts.id.renderButton(document.getElementById('googleBtnContainer'), {
-      theme: 'filled_black', size: 'large', width: 320, text: 'continue_with'
+      theme: 'filled_black', size: 'large', width: 328, text: 'continue_with', shape: 'pill'
     });
   }
   window.addEventListener('load', initGoogleButton);

@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KBFC | My Account</title>
-<link rel="icon" type="image/png" href="/images/Favicon.png">
-<link rel="apple-touch-icon" href="/images/Favicon.png">
+<link rel="icon" type="image/png" href="../images/Favicon.png">
+<link rel="apple-touch-icon" href="../images/Favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -242,7 +242,7 @@
 
 <div class="topbar">
   <div class="brand" id="brandHome">
-    <img src="/images/Favicon.png" alt="Kelapa Bali FC logo" class="brand-logo">
+    <img src="../images/Favicon.png" alt="Kelapa Bali FC logo" class="brand-logo">
     <span>KELAPA BALI FC <span style="opacity:.7">SEASON 26/27</span></span>
   </div>
   <button class="theme-toggle" id="themeToggle" aria-label="Toggle light and dark theme">
@@ -253,7 +253,7 @@
 
 <div class="split">
 
-  <div class="visual-panel">
+  <div class="visual-panel" id="visualPanel">
     <div class="visual-crest"><img src="../images/Favicon.png" alt=""></div>
     <div class="visual-eyebrow">Members area</div>
     <h1>Your club.<br>Your account.</h1>
@@ -378,6 +378,30 @@
   function redirectAfterLogin(data){
     window.location.href = data.isAdmin ? '../panel-x7k9/' : '../dashboard/';
   }
+
+  // ---- Login hero background: uses the image the admin uploaded via
+  // Site Media, if one exists. Falls back to the placeholder pattern
+  // already set in CSS if nothing's been uploaded yet, or if this fails.
+  const SITE_ASSETS_SHEET_ID = '1VSTIn7kl7nddpGhq1CsUIFz_q2DhiTq2tHe_cxzWVlM';
+  (async function applyLoginHero(){
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${SITE_ASSETS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=SiteAssets`;
+      const text = await (await fetch(url)).text();
+      const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+      const rows = json.table.rows || [];
+      const heroRow = rows.find(r => r.c[0] && r.c[0].v === 'login-hero');
+      const imageUrl = heroRow && heroRow.c[1] ? heroRow.c[1].v : '';
+      if (imageUrl){
+        const panel = document.getElementById('visualPanel');
+        panel.style.backgroundImage =
+          `linear-gradient(180deg, rgba(10,10,10,.15), rgba(10,10,10,.88) 90%), url('${imageUrl}')`;
+        panel.style.backgroundSize = 'cover';
+        panel.style.backgroundPosition = 'center';
+      }
+    } catch (err){
+      // Silently keep the CSS placeholder pattern if this fails for any reason.
+    }
+  })();
 
   // Must match CLIENT_PASSWORD_SALT in the Apps Script backend exactly.
   const PASSWORD_SALT = 'kbfc-club-salt-v1';

@@ -264,7 +264,7 @@
   <div id="authRequired" style="display:none;">
     <h2>Not authorized</h2>
     <p>This account doesn't have admin access, or you're not logged in.</p>
-    <a href="/login/">Go to login</a>
+    <a href="../account/">Go to login</a>
   </div>
 
   <div id="adminContent">
@@ -569,7 +569,7 @@
 
   els.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = '/login/';
+    window.location.href = '../account/';
   });
 
   // ---------------- ORDERS ----------------
@@ -1203,7 +1203,7 @@
 
     els.mediaLogTableBody.querySelectorAll('[data-kind="delete-media"]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Delete this upload? If it\\'s the live image for its slot, the site will fall back to whatever was uploaded before it (or the default placeholder).')) return;
+        if (!confirm('Delete this upload? If it is the live image for its slot, the site will fall back to whatever was uploaded before it (or the default placeholder).')) return;
         const params = new URLSearchParams({ action: 'adminDeleteSiteImage', token, rowNumber: btn.dataset.row });
         await fetch(`${API_URL}?${params.toString()}`);
         showToast('Upload deleted');

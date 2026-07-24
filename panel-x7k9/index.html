@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KBFC | Admin</title>
-<link rel="icon" type="image/png" href="../images/Favicon.png">
-<link rel="apple-touch-icon" href="../images/Favicon.png">
+<link rel="icon" type="image/png" href="/images/Favicon.png">
+<link rel="apple-touch-icon" href="/images/Favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -251,7 +251,7 @@
   <div id="authRequired" style="display:none;">
     <h2>Not authorized</h2>
     <p>This account doesn't have admin access, or you're not logged in.</p>
-    <a href="../account/">Go to login</a>
+    <a href="/login/">Go to login</a>
   </div>
 
   <div id="adminContent">
@@ -514,7 +514,7 @@
 
   els.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = '../account/';
+    window.location.href = '../login/';
   });
 
   // ---------------- ORDERS ----------------

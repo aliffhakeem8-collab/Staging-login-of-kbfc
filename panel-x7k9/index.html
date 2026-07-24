@@ -186,7 +186,7 @@
   <div id="authRequired" style="display:none;">
     <h2>Not authorized</h2>
     <p>This account doesn't have admin access, or you're not logged in.</p>
-    <a href="../account/">Go to login</a>
+    <a href="../login/">Go to login</a>
   </div>
 
   <div id="adminContent">
@@ -335,7 +335,7 @@
 
   els.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = '../account/';
+    window.location.href = '../login/';
   });
 
   // ---------------- ORDERS ----------------
@@ -375,7 +375,7 @@
 
       return `
       <tr class="order-summary-row" data-idx="${idx}" style="cursor:pointer;">
-        <td class="mono">${o.orderId} ${o.items.length > 1 ? `<span class="order-chevron" style="display:inline-block;transition:transform .2s ease;">›</span>` : ''}</td>
+        <td class="mono">${o.orderId} <span class="order-chevron" style="display:inline-block;transition:transform .2s ease;">›</span></td>
         <td>${o.email}</td>
         <td>${summary}</td>
         <td class="mono">RM ${o.total.toFixed(0)}</td>
@@ -389,7 +389,7 @@
           <button class="toggle ${o.premium ? 'on' : ''}" data-rows="${rowNumbersStr}" data-kind="order-premium"></button>
         </td>
       </tr>
-      ${o.items.length > 1 ? `
+      ${`
       <tr class="order-detail-row" data-idx="${idx}" style="display:none;">
         <td colspan="6" style="padding:0;">
           <div style="background:var(--surface-2); padding:10px 14px 14px 34px; border-bottom:1px solid var(--line);">
@@ -417,7 +417,7 @@
             </table>
           </div>
         </td>
-      </tr>` : ''}
+      </tr>`}
       `;
     }).join('');
 

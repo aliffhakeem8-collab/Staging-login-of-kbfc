@@ -87,12 +87,18 @@
     display:flex; flex-direction:column; justify-content:flex-end;
     padding:110px 5vw 60px;
     background:
-      linear-gradient(180deg, rgba(10,10,10,.15), rgba(10,10,10,.88) 90%),
-      repeating-linear-gradient(135deg, #0D0F12, #0D0F12 22px, #14171B 22px, #14171B 44px);
+      linear-gradient(180deg, rgba(10,10,10,.45), rgba(10,10,10,.92) 90%),
+      url('../images/Frontpic.jpg');
+    background-size:cover;
+    background-position:center;
     color:#fff;
   }
-  /* Swap in a real hero/player photo when ready:
-     .visual-panel{ background-image: linear-gradient(...), url('/images/account-hero.jpg'); background-size:cover; background-position:center; } */
+  /* To go back to the placeholder pattern instead of a real photo, swap
+     the background above for:
+     background:
+       linear-gradient(180deg, rgba(10,10,10,.15), rgba(10,10,10,.88) 90%),
+       repeating-linear-gradient(135deg, #0D0F12, #0D0F12 22px, #14171B 22px, #14171B 44px);
+  */
   .visual-crest{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-58%);
     width:min(70%, 420px); opacity:.07; pointer-events:none;
@@ -273,7 +279,7 @@
         <h2 id="formTitle">Log in</h2>
         <p class="form-sub" id="formSub">Use the email and password you set up, or sign up if you haven't yet.</p>
 
-        <div id="googleBtnContainer" style="margin-bottom:16px;"></div>
+        <div id="googleBtnContainer" style="margin-bottom:16px; display:flex; justify-content:center;"></div>
         <div id="googleMsg"></div>
         <div style="display:flex; align-items:center; gap:12px; margin:18px 0;">
           <div style="flex:1; height:1px; background:var(--line);"></div>
